@@ -159,12 +159,19 @@ api-demo/
 ├── api_demo/              # 核心包
 │   ├── __init__.py
 │   ├── client.py          # 客户端主类
-│   └── exceptions.py      # 异常定义
+│   ├── exceptions.py      # 异常定义
+│   └── gui/               # tkinter 桌面 GUI（演示用）
+│       ├── app.py
+│       ├── widgets.py
+│       ├── settings.py
+│       └── constants.py
 ├── examples/              # 使用示例
 │   ├── basic_usage.py
 │   └── advanced_usage.py
 ├── tests/                 # 单元测试
 ├── docs/                  # 详细文档
+├── run_gui.py             # GUI 启动脚本（源码运行）
+├── build_gui.bat          # 一键打包 .exe 脚本
 ├── .env.example           # 环境变量模板
 ├── .gitignore
 ├── LICENSE
@@ -185,6 +192,67 @@ python examples/basic_usage.py
 # 高级示例
 python examples/advanced_usage.py
 ```
+
+---
+
+## 🖥️ GUI 桌面版
+
+除了命令行调用，本项目自带一个**桌面演示工具**，可以鼠标点点点就发请求、看响应。
+底层仍使用 `api_demo.Client`，GUI 只是更友好的壳。
+
+### 启动方式
+
+```bash
+# 方式 1：直接跑脚本（无需安装）
+python run_gui.py
+
+# 方式 2：装包后用命令（推荐）
+pip install -e .
+hub
+```
+
+> 💡 GUI 使用 Python 自带的 **tkinter**，**无需任何额外依赖**。
+> 极少数 Linux 发行版需要 `sudo apt install python3-tk`。
+
+### 打包成 .exe（双击启动，无需 Python 环境）
+
+用 PyInstaller 把 GUI 打成单文件 .exe，可以拷给任何 Windows 电脑用：
+
+```bash
+# 1. 装 PyInstaller（一次性）
+pip install pyinstaller
+
+# 2. 打包
+pyinstaller --onefile --windowed --name hub --icon reddit_socialnetwork_23460.ico run_gui.py
+```
+
+或者直接双击项目根目录的 `build_gui.bat`，脚本会自动检测并安装 PyInstaller。
+
+打包完成后：
+- 产物：`dist/hub.exe`（约 15 MB，单文件、双击即用）
+- 可以把它拖到桌面、钉到任务栏、拷给同事
+
+### 界面分区
+
+| 区域 | 作用 |
+|------|------|
+| 顶部工具条 | ⚙ 设置 / 📄 使用示例 / 🧹 清空 / 当前地址显示 |
+| 左侧「请求」 | 选方法（GET/POST/PUT/DELETE/PATCH）、填路径、Params / Headers / Body 三页签 |
+| 右侧「响应」 | 状态码 + 耗时 + 格式化后的 JSON 响应 + 错误高亮 |
+| 底部状态栏 | 当前状态（就绪 / 请求中 / 错误提示） |
+
+### 无真实 API 也能试玩
+
+填以下内容即可看到真实的 JSON 响应（公开测试站，不校验 Key）：
+
+| 字段 | 值 |
+|------|----|
+| Base URL | `https://jsonplaceholder.typicode.com` |
+| Path | `/todos/1` |
+| API Key | 任意字符 |
+| Method | GET |
+
+![GUI 截图](docs/images/gui-screenshot.png)
 
 ---
 

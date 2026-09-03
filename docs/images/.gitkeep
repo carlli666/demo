@@ -1,0 +1,6 @@
+# 占位目录：截图
+
+请把 `python run_gui.py` 启动后的窗口截图保存为 `gui-screenshot.png`，放在本目录下。
+
+Windows 截图快捷键：`Win + Shift + S`
+仅截当前窗口：`Alt + PrintScreen` 然后粘贴到画图 / 图片编辑器

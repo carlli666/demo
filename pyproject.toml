@@ -49,6 +49,10 @@ Homepage = "https://github.com/your-username/api-demo"
 Repository = "https://github.com/your-username/api-demo"
 Issues = "https://github.com/your-username/api-demo/issues"
 
+[project.scripts]
+# 安装后可直接在终端敲 `hub` 启动桌面版（依赖 Python 自带 tkinter）
+hub = "api_demo.gui.app:main"
+
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["api_demo*"]
