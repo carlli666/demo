@@ -31,8 +31,8 @@ pip install api-demo
 ### 从源码安装（开发版）
 
 ```bash
-git clone https://github.com/your-username/api-demo.git
-cd api-demo
+git clone https://github.com/callli666/demo.git
+cd demo
 pip install -e .
 ```
 
@@ -286,6 +286,6 @@ pyinstaller --onefile --windowed --name hub --icon reddit_socialnetwork_23460.ic
 
 ## 📮 联系方式
 
-- 作者：Your Name
-- 邮箱：your.email@example.com
-- 问题反馈：[GitHub Issues](https://github.com/your-username/api-demo/issues)
+- 作者：carlli666
+- 邮箱：lhe6183@gmail.com
+- 问题反馈：[GitHub Issues](https://github.com/callli666/demo/issues)

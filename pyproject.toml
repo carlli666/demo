@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
 authors = [
-    { name = "Your Name", email = "your.email@example.com" }
+    { name = "carlli666", email = "lhe6183@gmail.com" }
 ]
 keywords = ["api", "sdk", "client", "rest"]
 classifiers = [
@@ -45,9 +45,9 @@ test = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/your-username/api-demo"
-Repository = "https://github.com/your-username/api-demo"
-Issues = "https://github.com/your-username/api-demo/issues"
+Homepage = "https://github.com/callli666/demo"
+Repository = "https://github.com/callli666/demo"
+Issues = "https://github.com/callli666/demo/issues"
 
 [project.scripts]
 # 安装后可直接在终端敲 `hub` 启动桌面版（依赖 Python 自带 tkinter）
