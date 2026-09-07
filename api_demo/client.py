@@ -67,11 +67,16 @@ class Client:
     :param max_retries: 失败重试次数，默认 3
     :param backoff_factor: 重试退避因子，默认 0.5
     :param verify_ssl: 是否校验 SSL 证书，默认 True
+    :param auth_style: 认证方式，可选 ``"api_key"``（默认，发送 ``ApiKey: <key>`` 头）
+        或 ``"bearer"``（发送 ``Authorization: Bearer <key>`` 头）
     """
 
     DEFAULT_TIMEOUT = 30
     DEFAULT_MAX_RETRIES = 3
     DEFAULT_BACKOFF = 0.5
+
+    # 支持的认证方式
+    AUTH_STYLES = ("api_key", "bearer")
 
     def __init__(
         self,
@@ -81,16 +86,23 @@ class Client:
         max_retries: int = DEFAULT_MAX_RETRIES,
         backoff_factor: float = DEFAULT_BACKOFF,
         verify_ssl: bool = True,
+        auth_style: str = "api_key",
     ):
         import os
         from dotenv import load_dotenv
 
         load_dotenv()  # 自动加载 .env 文件
 
+        if auth_style not in self.AUTH_STYLES:
+            raise ValueError(
+                f"auth_style 必须是 {self.AUTH_STYLES} 之一，收到：{auth_style!r}"
+            )
+
         self.api_key = api_key or os.getenv("API_KEY")
         self.base_url = (base_url or os.getenv("API_BASE_URL", "")).rstrip("/")
         self.timeout = timeout
         self.verify_ssl = verify_ssl
+        self.auth_style = auth_style
 
         if not self.api_key:
             raise ValueError(
@@ -189,8 +201,12 @@ class Client:
         url = self._build_url(path)
 
         headers = kwargs.pop("headers", {})
+        # 认证头：默认使用 Logicalis 风格的 ApiKey 头，可选 Bearer 兼容老服务
+        if self.auth_style == "api_key":
+            headers["ApiKey"] = self.api_key
+        else:  # bearer
+            headers["Authorization"] = f"Bearer {self.api_key}"
         headers.update({
-            "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
             "Accept": "application/json",
             "User-Agent": "api-demo-python/0.1.0",

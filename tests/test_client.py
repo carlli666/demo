@@ -79,3 +79,74 @@ def test_close(client):
     client.close()
     # 多次关闭不应报错
     client.close()
+
+
+# ==================== 认证方式（auth_style）================
+
+
+def test_default_auth_style_is_api_key(client):
+    """默认认证方式应是 api_key（Logicalis 风格）。"""
+    assert client.auth_style == "api_key"
+
+
+def test_invalid_auth_style_rejected():
+    """非法 auth_style 应抛 ValueError。"""
+    with pytest.raises(ValueError, match="auth_style"):
+        Client(
+            api_key="k",
+            base_url="https://api.example.com",
+            auth_style="oauth",  # noqa
+        )
+
+
+def test_request_uses_api_key_header_by_default(monkeypatch):
+    """默认情况下请求头应包含 ApiKey，不含 Authorization: Bearer。"""
+    import requests
+
+    captured = {}
+
+    def fake_send(self, request, **kwargs):
+        captured.update(dict(request.headers))
+        resp = requests.Response()
+        resp.status_code = 200
+        resp._content = b'{"ok": true}'
+        return resp
+
+    monkeypatch.setattr(requests.Session, "send", fake_send)
+
+    c = Client(
+        api_key="my-uuid-key",
+        base_url="https://api.example.com",
+        timeout=1,
+        max_retries=0,
+    )
+    c.get("/ping")
+    assert captured.get("ApiKey") == "my-uuid-key"
+    assert "Authorization" not in captured
+
+
+def test_request_can_use_bearer_auth(monkeypatch):
+    """显式指定 auth_style='bearer' 时用 Authorization: Bearer。"""
+    import requests
+
+    captured = {}
+
+    def fake_send(self, request, **kwargs):
+        captured.update(dict(request.headers))
+        resp = requests.Response()
+        resp.status_code = 200
+        resp._content = b'{"ok": true}'
+        return resp
+
+    monkeypatch.setattr(requests.Session, "send", fake_send)
+
+    c = Client(
+        api_key="my-uuid-key",
+        base_url="https://api.example.com",
+        timeout=1,
+        max_retries=0,
+        auth_style="bearer",
+    )
+    c.get("/ping")
+    assert captured.get("Authorization") == "Bearer my-uuid-key"
+    assert "ApiKey" not in captured
