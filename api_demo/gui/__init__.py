@@ -9,14 +9,15 @@ api_demo.gui
 
 使用方式：
 
-    from api_demo.gui import main
+    from api_demo.gui import main, App, ThemeManager, Theme
     main()
 
 或者在命令行：
 
-    hub
+    intelligent-assistant
 """
 
 from .app import App, format_json, main
+from .theme import THEME_LABELS, Theme, ThemeManager
 
-__all__ = ["App", "main", "format_json"]
+__all__ = ["App", "main", "format_json", "Theme", "ThemeManager", "THEME_LABELS"]

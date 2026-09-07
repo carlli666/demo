@@ -1,10 +1,10 @@
 @echo off
 REM ============================================
-REM hub 桌面 GUI 打包脚本
+REM intelligent assistant 桌面 GUI 打包脚本
 REM ============================================
 REM
 REM 把 tkinter GUI 打包成单文件 .exe，方便双击启动。
-REM 产物：dist\hub.exe（约 15 MB）
+REM 产物：dist\intelligent assistant.exe（约 15 MB）
 REM 图标：reddit_socialnetwork_23460.ico
 REM
 REM 用法（在项目根目录双击或在 cmd 里执行）：
@@ -15,7 +15,7 @@ REM     .\venv\Scripts\Activate.ps1
 REM     pip install pyinstaller
 
 echo ============================================
-echo   正在打包 hub.exe ...
+echo   正在打包 intelligent assistant.exe ...
 echo ============================================
 
 REM 检查虚拟环境
@@ -41,7 +41,7 @@ REM 打包（--onefile 单文件，--windowed 不弹黑窗，--icon 自定义图
 venv\Scripts\python.exe -m PyInstaller ^
     --onefile ^
     --windowed ^
-    --name hub ^
+    --name "intelligent assistant" ^
     --icon reddit_socialnetwork_23460.ico ^
     --clean ^
     run_gui.py
@@ -54,7 +54,7 @@ if errorlevel 1 (
 
 echo ============================================
 echo   打包完成！
-echo   产物：dist\hub.exe
+echo   产物：dist\intelligent assistant.exe
 echo   双击它即可启动 GUI
 echo ============================================
 pause

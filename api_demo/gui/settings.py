@@ -14,6 +14,7 @@ from tkinter import messagebox, ttk
 from typing import Any, Dict, Optional
 
 from .constants import CONFIG_PATH, CONFIG_PATH_LEGACY, DEFAULT_CONFIG, pick_ui_font
+from .theme import THEME_LABELS, Theme
 
 
 # ==================== 配置读写 ====================
@@ -23,13 +24,16 @@ def load_config() -> Dict[str, Any]:
     """
     从本地 JSON 文件读取配置。
 
-    优先读新路径 ~/.hub-gui.json；不存在时尝试旧路径 ~/.api-demo-gui.json；
+    优先读新路径 ~/.intelligent-assistant-gui.json；
+    不存在时依次尝试旧路径 ~/.hub-gui.json → ~/.api-demo-gui.json；
     都失败时返回默认值，绝不抛异常。
 
     :return: 配置字典
     """
     config = dict(DEFAULT_CONFIG)
-    for path in (CONFIG_PATH, CONFIG_PATH_LEGACY):
+    # CONFIG_PATH_LEGACY 是 list，CONFIG_PATH 单值 —— 包成 tuple 统一迭代
+    paths = [CONFIG_PATH] + list(CONFIG_PATH_LEGACY)
+    for path in paths:
         try:
             with open(path, "r", encoding="utf-8") as f:
                 data = json.load(f)
@@ -37,7 +41,6 @@ def load_config() -> Dict[str, Any]:
                 config.update(data)
             break  # 读到一个就用，不再尝试
         except (FileNotFoundError, json.JSONDecodeError, OSError):
-            # 当前路径不存在 / 不合法 / 没权限 —— 尝试下一个
             continue
     return config
 
@@ -89,8 +92,9 @@ class SettingsDialog(tk.Toplevel):
         self.on_save = on_save
 
         self.title("设置")
-        self.geometry("480x420")
-        self.resizable(False, False)
+        self.geometry("520x560")
+        self.resizable(True, True)
+        self.minsize(480, 480)
         self.transient(parent)  # 始终在父窗口之上
 
         # 默认值缓存（用户点取消时还原）
@@ -105,6 +109,14 @@ class SettingsDialog(tk.Toplevel):
         self.var_remember_key = tk.BooleanVar(value=bool(current_config.get("remember_key", False)))
         self.var_show_key = tk.BooleanVar(value=False)
 
+        # 主题下拉框（值用 Theme.value 字符串）
+        theme_str = current_config.get("theme", "light")
+        try:
+            theme_value = Theme(theme_str).value
+        except ValueError:
+            theme_value = Theme.LIGHT.value
+        self.var_theme = tk.StringVar(value=theme_value)
+
         self._build_ui()
 
         # 模态：grab 所有事件 + 等待窗口关闭
@@ -117,16 +129,16 @@ class SettingsDialog(tk.Toplevel):
         """构建对话框内部布局。"""
         font_ui = pick_ui_font()
 
-        # 外层用 grid，统一一种布局管理器
-        outer = ttk.Frame(self, padding=16)
-        outer.pack(fill="both", expand=True)
-        outer.columnconfigure(1, weight=1)
+        # === 上半部分：表单区域（用 grid，可滚动如果内容多）===
+        form_frame = ttk.Frame(self, padding=(16, 16, 16, 8))
+        form_frame.pack(side="top", fill="both", expand=True)
+        form_frame.columnconfigure(1, weight=1)
 
         row = 0
 
         # API Key 行（带「显示明文」切换）
-        ttk.Label(outer, text="API Key:", font=font_ui).grid(row=row, column=0, sticky="w", pady=6)
-        key_frame = ttk.Frame(outer)
+        ttk.Label(form_frame, text="API Key:", font=font_ui).grid(row=row, column=0, sticky="w", pady=6)
+        key_frame = ttk.Frame(form_frame)
         key_frame.grid(row=row, column=1, sticky="ew", pady=6)
         key_frame.columnconfigure(0, weight=1)
         self.entry_api_key = ttk.Entry(
@@ -143,53 +155,111 @@ class SettingsDialog(tk.Toplevel):
         row += 1
 
         # Base URL
-        ttk.Label(outer, text="Base URL:", font=font_ui).grid(row=row, column=0, sticky="w", pady=6)
-        ttk.Entry(outer, textvariable=self.var_base_url, font=font_ui).grid(
+        ttk.Label(form_frame, text="Base URL:", font=font_ui).grid(row=row, column=0, sticky="w", pady=6)
+        ttk.Entry(form_frame, textvariable=self.var_base_url, font=font_ui).grid(
             row=row, column=1, sticky="ew", pady=6
         )
         row += 1
 
         # 超时（秒）
-        ttk.Label(outer, text="超时（秒）:", font=font_ui).grid(row=row, column=0, sticky="w", pady=6)
+        ttk.Label(form_frame, text="超时（秒）:", font=font_ui).grid(row=row, column=0, sticky="w", pady=6)
         ttk.Spinbox(
-            outer, from_=1, to=300, textvariable=self.var_timeout, width=10, font=font_ui
+            form_frame, from_=1, to=300, textvariable=self.var_timeout, width=10, font=font_ui
         ).grid(row=row, column=1, sticky="w", pady=6)
         row += 1
 
         # 重试次数
-        ttk.Label(outer, text="重试次数:", font=font_ui).grid(row=row, column=0, sticky="w", pady=6)
+        ttk.Label(form_frame, text="重试次数:", font=font_ui).grid(row=row, column=0, sticky="w", pady=6)
         ttk.Spinbox(
-            outer, from_=0, to=10, textvariable=self.var_max_retries, width=10, font=font_ui
+            form_frame, from_=0, to=10, textvariable=self.var_max_retries, width=10, font=font_ui
         ).grid(row=row, column=1, sticky="w", pady=6)
         row += 1
 
-        # 校验 SSL
+        # 校验 SSL（ttk.Checkbutton 不支持 font 选项，用主题默认字体）
         ttk.Checkbutton(
-            outer, text="校验 SSL 证书（自签证书请取消）", variable=self.var_verify_ssl, font=font_ui
+            form_frame, text="校验 SSL 证书（自签证书请取消）", variable=self.var_verify_ssl
         ).grid(row=row, column=0, columnspan=2, sticky="w", pady=4)
         row += 1
 
-        # 记住 API Key
+        # 记住 API Key（同上）
         ttk.Checkbutton(
-            outer, text="记住 API Key（明文存本地，仅演示用）", variable=self.var_remember_key, font=font_ui
+            form_frame, text="记住 API Key（明文存本地，仅演示用）", variable=self.var_remember_key
         ).grid(row=row, column=0, columnspan=2, sticky="w", pady=4)
+        row += 1
+
+        # 主题
+        ttk.Label(form_frame, text="主题:", font=font_ui).grid(row=row, column=0, sticky="w", pady=6)
+        theme_choices = [
+            (t.value, THEME_LABELS[t]) for t in (Theme.LIGHT, Theme.DARK, Theme.SYSTEM)
+        ]
+        theme_combo = ttk.Combobox(
+            form_frame,
+            textvariable=self.var_theme,
+            values=[label for _v, label in theme_choices],
+            state="readonly",
+            width=20,
+            font=font_ui,
+        )
+        # 把展示文字映射到内部 value（这样用户在 UI 看到的是「亮色/暗色/跟随系统」）
+        self._theme_display_to_value = {label: v for v, label in theme_choices}
+        theme_combo.set(THEME_LABELS[Theme(self.var_theme.get())])
+        theme_combo.grid(row=row, column=1, sticky="w", pady=6)
         row += 1
 
         # 提示
         hint = ttk.Label(
-            outer,
+            form_frame,
             text="提示：留空 API Key / Base URL 时，SDK 会自动读取 .env 或环境变量",
             foreground="#7f8c8d",
             font=font_ui,
+            wraplength=420,
         )
         hint.grid(row=row, column=0, columnspan=2, sticky="w", pady=(8, 4))
-        row += 1
 
-        # 按钮区
-        btn_frame = ttk.Frame(outer)
-        btn_frame.grid(row=row, column=0, columnspan=2, sticky="e", pady=(12, 0))
-        ttk.Button(btn_frame, text="取消", command=self._on_cancel, width=10).pack(side="right", padx=4)
-        ttk.Button(btn_frame, text="保存", command=self._on_save_click, width=10).pack(side="right")
+        # === 下半部分：按钮栏（用 pack side=bottom，绝对在底部）===
+        # 用一个高对比背景的 Frame 装按钮，确保视觉上独立、显眼
+        btn_bar = tk.Frame(self, bg="#f0f0f0", height=70)
+        btn_bar.pack(side="bottom", fill="x")
+        btn_bar.pack_propagate(False)  # 固定高度，不被按钮撑变形
+
+        # 用 tk.Button（不是 ttk），强制带 3D 边框，绝对可见
+        save_btn = tk.Button(
+            btn_bar,
+            text="💾  保存",
+            command=self._on_save_click,
+            width=14,
+            height=2,
+            font=font_ui,
+            bg="#4CAF50",
+            fg="white",
+            activebackground="#45a049",
+            relief="raised",
+            bd=2,
+            cursor="hand2",
+        )
+        save_btn.pack(side="right", padx=(8, 16), pady=12)
+
+        cancel_btn = tk.Button(
+            btn_bar,
+            text="取消",
+            command=self._on_cancel,
+            width=10,
+            height=2,
+            font=font_ui,
+            bg="#e0e0e0",
+            activebackground="#d0d0d0",
+            relief="raised",
+            bd=2,
+            cursor="hand2",
+        )
+        cancel_btn.pack(side="right", padx=8, pady=12)
+
+        # 默认焦点在保存按钮上
+        save_btn.focus_set()
+        # Enter 触发保存
+        self.bind("<Return>", lambda _e: self._on_save_click())
+        # Escape 触发取消
+        self.bind("<Escape>", lambda _e: self._on_cancel())
 
     # ---------- 行为 ----------
 
@@ -225,6 +295,7 @@ class SettingsDialog(tk.Toplevel):
             "max_retries": max_retries,
             "verify_ssl": bool(self.var_verify_ssl.get()),
             "remember_key": bool(self.var_remember_key.get()),
+            "theme": self._theme_display_to_value.get(self.var_theme.get(), Theme.LIGHT.value),
         }
 
         # 写本地（容错，失败也继续）

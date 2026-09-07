@@ -70,3 +70,115 @@ def test_format_json_list_and_scalar():
     assert format_json([1, 2, 3]) == "[\n  1,\n  2,\n  3\n]"
     assert format_json("hello") == '"hello"'
     assert format_json(None) == "null"
+
+
+# ==================== 主题（Theme / ThemeManager）================
+
+
+def test_theme_enum_three_values():
+    """Theme 枚举有 light / dark / system 三种值。"""
+    pytest.importorskip("tkinter")
+    from api_demo.gui.theme import Theme
+
+    assert Theme.LIGHT.value == "light"
+    assert Theme.DARK.value == "dark"
+    assert Theme.SYSTEM.value == "system"
+    assert len(list(Theme)) == 3
+
+
+def test_palettes_have_same_keys():
+    """亮色和暗色调色板的键必须一致，否则 _refresh_registered_widgets 会炸。"""
+    from api_demo.gui.constants import PALETTE_DARK, PALETTE_LIGHT
+
+    assert set(PALETTE_LIGHT.keys()) == set(PALETTE_DARK.keys())
+
+
+def test_method_colors_have_all_http_methods():
+    """METHOD_COLORS 必须覆盖所有 HTTP_METHODS。"""
+    from api_demo.gui.constants import HTTP_METHODS, METHOD_COLORS
+
+    for m in HTTP_METHODS:
+        assert m in METHOD_COLORS, f"{m} 不在 METHOD_COLORS 里"
+        assert "light" in METHOD_COLORS[m]
+        assert "dark" in METHOD_COLORS[m]
+
+
+def test_theme_manager_can_be_constructed_and_switch():
+    """ThemeManager 能实例化并切换主题。"""
+    pytest.importorskip("tkinter")
+    import tkinter as tk
+
+    from api_demo.gui.theme import Theme, ThemeManager
+
+    root = tk.Tk()
+    root.withdraw()
+    try:
+        mgr = ThemeManager(root)
+        # 默认亮色
+        assert mgr.current == Theme.LIGHT
+        assert mgr.palette()["bg"] == "#ffffff"
+
+        # 切到暗色
+        mgr.apply_preference(Theme.DARK)
+        assert mgr.current == Theme.DARK
+        assert mgr.palette()["bg"] == "#0f172a"
+
+        # toggle 循环
+        mgr.apply_preference(Theme.LIGHT)
+        mgr.toggle()  # light -> dark
+        assert mgr.current == Theme.DARK
+        mgr.toggle()  # dark -> system
+        assert mgr.preference == Theme.SYSTEM
+        mgr.toggle()  # system -> light
+        assert mgr.preference == Theme.LIGHT
+    finally:
+        root.destroy()
+
+
+def test_theme_manager_method_color_changes_with_theme():
+    """方法色随主题变化。"""
+    pytest.importorskip("tkinter")
+    import tkinter as tk
+
+    from api_demo.gui.theme import Theme, ThemeManager
+
+    root = tk.Tk()
+    root.withdraw()
+    try:
+        mgr = ThemeManager(root)
+        mgr.apply_preference(Theme.LIGHT)
+        light_color = mgr.method_color("GET")
+        mgr.apply_preference(Theme.DARK)
+        dark_color = mgr.method_color("GET")
+        # 亮暗色应不同（除非设计故意相同）
+        assert light_color != dark_color
+    finally:
+        root.destroy()
+
+
+def test_settings_dialog_includes_theme_field():
+    """SettingsDialog 构造后应包含主题变量，并把 'dark' 映射到显示文案。"""
+    pytest.importorskip("tkinter")
+    import tkinter as tk
+
+    from api_demo.gui.settings import SettingsDialog
+    from api_demo.gui.theme import Theme
+
+    root = tk.Tk()
+    root.withdraw()
+    try:
+        dlg = SettingsDialog(root, {"theme": "dark"})
+        assert hasattr(dlg, "var_theme")
+        # 显示值是中文标签，内部存的是 Theme.value
+        display_value = dlg.var_theme.get()
+        # 反查映射得到内部 value
+        internal = dlg._theme_display_to_value.get(display_value)
+        assert internal == Theme.DARK.value
+        # 默认主题映射也正确
+        dlg2 = SettingsDialog(root, {"theme": "light"})
+        internal2 = dlg2._theme_display_to_value.get(dlg2.var_theme.get())
+        assert internal2 == Theme.LIGHT.value
+        dlg.destroy()
+        dlg2.destroy()
+    finally:
+        root.destroy()

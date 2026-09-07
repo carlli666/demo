@@ -50,8 +50,8 @@ Repository = "https://github.com/callli666/demo"
 Issues = "https://github.com/callli666/demo/issues"
 
 [project.scripts]
-# 安装后可直接在终端敲 `hub` 启动桌面版（依赖 Python 自带 tkinter）
-hub = "api_demo.gui.app:main"
+# 安装后可直接在终端敲 `intelligent assistant` 启动桌面版（依赖 Python 自带 tkinter）
+intelligent-assistant = "api_demo.gui.app:main"
 
 [tool.setuptools.packages.find]
 where = ["."]

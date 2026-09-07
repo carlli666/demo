@@ -28,12 +28,14 @@ from api_demo import APIError, AuthError, Client, NotFoundError, RateLimitError,
 from .constants import (
     COLOR_MUTED,
     FRIENDLY_ERROR_TEMPLATES,
+    PAD_SM,
     WELCOME_TEXT,
     WINDOW_DEFAULT_SIZE,
     WINDOW_MIN_SIZE,
     pick_ui_font,
 )
 from .settings import SettingsDialog, load_config
+from .theme import THEME_CYCLE, THEME_LABELS, Theme, ThemeManager
 from .widgets import RequestPanel, ResponsePanel
 
 
@@ -187,8 +189,20 @@ class App:
             except Exception:  # noqa: BLE001
                 pass
 
+        # 创建主题管理器（创建后立即应用，避免首次绘制闪烁）
+        self.theme_manager = ThemeManager(self.root)
+
         self._build_window()
         self._wire_events()
+
+        # 应用持久化的主题偏好
+        pref_str = self.config.get("theme", "light")
+        try:
+            pref_theme = Theme(pref_str)
+        except ValueError:
+            pref_theme = Theme.LIGHT
+        self.theme_manager.apply_preference(pref_theme)
+        self._update_theme_button()
 
         # 启动时显示欢迎语
         self.response_panel.display_text(WELCOME_TEXT)
@@ -198,36 +212,48 @@ class App:
 
     def _build_window(self) -> None:
         """构建窗口主体。"""
-        self.root.title("api-demo GUI 演示工具")
+        self.root.title("intelligent assistant")
         self.root.geometry(WINDOW_DEFAULT_SIZE)
         self.root.minsize(*WINDOW_MIN_SIZE)
 
         font_ui = pick_ui_font()
 
         # === 工具条 ===
-        toolbar = ttk.Frame(self.root, padding=(8, 6))
+        toolbar = ttk.Frame(self.root, padding=(PAD_SM, PAD_SM))
         toolbar.pack(fill="x")
 
-        ttk.Button(toolbar, text="⚙  设置", command=self._open_settings).pack(side="left", padx=(0, 4))
-        ttk.Button(toolbar, text="📄  使用示例", command=self._on_example).pack(
-            side="left", padx=4
+        # 左侧按钮
+        ttk.Button(toolbar, text="⚙  设置", command=self._open_settings).pack(
+            side="left", padx=(0, PAD_SM)
         )
-        ttk.Button(toolbar, text="🧹  清空", command=self._on_clear).pack(side="left", padx=4)
+        ttk.Button(toolbar, text="📄  使用示例", command=self._on_example).pack(
+            side="left", padx=PAD_SM
+        )
+        ttk.Button(toolbar, text="🧹  清空", command=self._on_clear).pack(
+            side="left", padx=PAD_SM
+        )
 
-        # 当前地址显示
+        # 右侧：主题切换 + 当前地址
+        right = ttk.Frame(toolbar)
+        right.pack(side="right")
+        self.btn_theme = ttk.Button(
+            right, text="☀ 亮色", width=10, command=self._on_theme_toggle
+        )
+        self.btn_theme.pack(side="right", padx=(PAD_SM, 0))
+
         self.var_current = tk.StringVar(value="当前地址: （未配置）")
         ttk.Label(
-            toolbar, textvariable=self.var_current, font=font_ui, foreground=COLOR_MUTED
-        ).pack(side="right")
+            right, textvariable=self.var_current, font=font_ui, style="Muted.TLabel"
+        ).pack(side="right", padx=(0, PAD_SM))
 
         # === 主体：左右两个面板 ===
         body = ttk.Panedwindow(self.root, orient="horizontal")
-        body.pack(fill="both", expand=True, padx=8, pady=4)
+        body.pack(fill="both", expand=True, padx=PAD_SM, pady=(0, PAD_SM))
 
-        self.request_panel = RequestPanel(body, on_send=self.send_request)
+        self.request_panel = RequestPanel(body, theme_manager=self.theme_manager, on_send=self.send_request)
         body.add(self.request_panel, weight=1)
 
-        self.response_panel = ResponsePanel(body)
+        self.response_panel = ResponsePanel(body, theme_manager=self.theme_manager)
         body.add(self.response_panel, weight=1)
 
         # === 状态栏 ===
@@ -237,6 +263,34 @@ class App:
     def _wire_events(self) -> None:
         """绑定窗口事件。"""
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
+
+    # ---------- 主题 ----------
+
+    def _on_theme_toggle(self) -> None:
+        """工具栏主题按钮：循环切换 light → dark → system → light。"""
+        new_theme = self.theme_manager.toggle()
+        # 持久化
+        self.config["theme"] = new_theme.value
+        self._persist_config()
+        self._update_theme_button()
+        # 主题切换后重画响应区状态色
+        self.response_panel.set_status(None, None)
+
+    def _update_theme_button(self) -> None:
+        """更新主题切换按钮的文字。"""
+        icons = {
+            Theme.LIGHT: "☀",
+            Theme.DARK: "🌙",
+            Theme.SYSTEM: "🖥",
+        }
+        icon = icons.get(self.theme_manager.current, "☀")
+        self.btn_theme.configure(text=f"{icon} {THEME_LABELS[self.theme_manager.preference]}")
+
+    def _persist_config(self) -> None:
+        """把当前 config（除了 api_key 外）写到磁盘。"""
+        from .settings import save_config
+
+        save_config(self.config)
 
     # ---------- Client 管理 ----------
 
@@ -268,6 +322,15 @@ class App:
                 pass
             self.client = None
         self.config.update(new_config)
+        # 主题变化立即生效
+        theme_str = self.config.get("theme", "light")
+        try:
+            pref_theme = Theme(theme_str)
+            if pref_theme != self.theme_manager.preference:
+                self.theme_manager.apply_preference(pref_theme)
+                self._update_theme_button()
+        except ValueError:
+            pass
         # 更新「当前地址」显示（即使还没真正连上）
         base = self.config.get("base_url") or "（未配置）"
         self.var_current.set(f"当前地址: {base}")

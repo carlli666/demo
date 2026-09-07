@@ -208,7 +208,7 @@ python run_gui.py
 
 # 方式 2：装包后用命令（推荐）
 pip install -e .
-hub
+intelligent-assistant
 ```
 
 > 💡 GUI 使用 Python 自带的 **tkinter**，**无需任何额外依赖**。
@@ -223,13 +223,13 @@ hub
 pip install pyinstaller
 
 # 2. 打包
-pyinstaller --onefile --windowed --name hub --icon reddit_socialnetwork_23460.ico run_gui.py
+pyinstaller --onefile --windowed --name "intelligent assistant" --icon reddit_socialnetwork_23460.ico run_gui.py
 ```
 
 或者直接双击项目根目录的 `build_gui.bat`，脚本会自动检测并安装 PyInstaller。
 
 打包完成后：
-- 产物：`dist/hub.exe`（约 15 MB，单文件、双击即用）
+- 产物：`dist/intelligent assistant.exe`（约 15 MB，单文件、双击即用）
 - 可以把它拖到桌面、钉到任务栏、拷给同事
 
 ### 界面分区
