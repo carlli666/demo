@@ -255,6 +255,30 @@ pyinstaller --onefile --windowed --name "intelligent assistant" --icon intellige
 
 ![GUI 截图](docs/images/gui-screenshot.png)
 
+### 在线升级
+
+应用启动后会**后台静默检查** GitHub Releases 上的最新版（默认 7 天一次，不打扰用户）。
+发现新版本时会弹友好对话框，让你选「立即更新 / 稍后 / 跳过此版本」。
+
+手动检查：⚙ 设置 → 左下角 **🔄 检查更新** 按钮。
+
+#### 发版流程（项目维护者用）
+
+1. 改 `pyproject.toml` 里的 `version = "0.2.0"`
+2. 改 `api_demo/__init__.py` 里的 `__version__ = "0.2.0"`
+3. 跑 `build_gui.bat` 生成新的 exe
+4. GitHub 上点 **Releases → Create new release**
+   - Tag: `v0.2.0`（**必须带 `v` 前缀**）
+   - 上传 `dist/intelligent assistant.exe` 作为 binary asset
+   - **在描述里加一行 `SHA256: <64位hex>`**（exe 的 SHA256，可用 PowerShell `Get-FileHash` 算）
+5. 发布！用户启动时会自动检测到并提示升级
+
+#### 升级机制原理
+
+- 下载：用 `urllib.request` 流式下载到 `%TEMP%\intelligent-assistant-updates\`
+- 校验：从 release notes 正则提取 SHA256
+- 替换：**Windows 上正在运行的 exe 不能直接覆盖**，所以生成一个 .bat 后台脚本，等主进程退出后再 `move` 替换 + 重启新版本
+
 ---
 
 ## 🔧 配置环境变量

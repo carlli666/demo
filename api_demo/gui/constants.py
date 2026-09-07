@@ -216,7 +216,30 @@ DEFAULT_CONFIG = {
     "verify_ssl": True,
     "remember_key": False,
     "theme": "light",   # "light" | "dark" | "system"
+    # 升级相关
+    "last_update_check": 0.0,        # 上次检查时间（Unix timestamp）
+    "skipped_version": "",           # 用户点过「跳过此版本」的版本号
+    "pending_update_path": "",       # 已下载但未安装的 exe 路径
 }
+
+
+# ==================== 升级相关常量 ====================
+
+# GitHub 仓库
+GITHUB_REPO = "carlli666/demo"
+
+# Release 中 asset 的文件名（用户发版时必须用这个名）
+UPDATE_ASSET_NAME = "intelligent assistant.exe"
+
+# 自动检查间隔（秒）—— 默认 7 天
+UPDATE_CHECK_INTERVAL_DAYS = 7
+UPDATE_CHECK_INTERVAL_SECONDS = UPDATE_CHECK_INTERVAL_DAYS * 24 * 3600
+
+# 启动后多久开始后台检查（毫秒）
+UPDATE_STARTUP_DELAY_MS = 2000
+
+# 队列轮询间隔（毫秒）
+UPDATE_POLL_INTERVAL_MS = 500
 
 
 # ==================== 异常友好提示（app.py 用）====================

@@ -87,9 +87,11 @@ class SettingsDialog(tk.Toplevel):
         parent: tk.Misc,
         current_config: Dict[str, Any],
         on_save: Optional[callable] = None,
+        on_check_update: Optional[callable] = None,
     ):
         super().__init__(parent)
         self.on_save = on_save
+        self.on_check_update = on_check_update or (lambda: None)
 
         self.title("设置")
         self.geometry("520x560")
@@ -239,6 +241,23 @@ class SettingsDialog(tk.Toplevel):
         )
         save_btn.pack(side="right", padx=(8, 16), pady=12)
 
+        # 左侧：检查更新按钮（不关闭对话框就触发）
+        update_btn = tk.Button(
+            btn_bar,
+            text="🔄  检查更新",
+            command=self._on_check_update_click,
+            width=14,
+            height=2,
+            font=font_ui,
+            bg="#2196F3",
+            fg="white",
+            activebackground="#1976D2",
+            relief="raised",
+            bd=2,
+            cursor="hand2",
+        )
+        update_btn.pack(side="left", padx=(16, 8), pady=12)
+
         cancel_btn = tk.Button(
             btn_bar,
             text="取消",
@@ -270,6 +289,13 @@ class SettingsDialog(tk.Toplevel):
     def _on_cancel(self) -> None:
         """点取消：直接关闭窗口，不调用回调。"""
         self.destroy()
+
+    def _on_check_update_click(self) -> None:
+        """点检查更新：触发回调（不关闭对话框，让用户在结果对话框出现后再处理）。"""
+        try:
+            self.on_check_update()
+        except Exception:  # noqa: BLE001
+            pass
 
     def _on_save_click(self) -> None:
         """点保存：校验 → 回调 → 关闭。"""
