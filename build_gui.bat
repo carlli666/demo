@@ -5,7 +5,7 @@ REM ============================================
 REM
 REM 把 tkinter GUI 打包成单文件 .exe，方便双击启动。
 REM 产物：dist\intelligent assistant.exe（约 15 MB）
-REM 图标：reddit_socialnetwork_23460.ico
+REM 图标：intelligent_assistant.ico（用 make_icon.py 生成）
 REM
 REM 用法（在项目根目录双击或在 cmd 里执行）：
 REM     build_gui.bat
@@ -38,11 +38,13 @@ if errorlevel 1 (
 )
 
 REM 打包（--onefile 单文件，--windowed 不弹黑窗，--icon 自定义图标）
+REM   --add-data 把 ico 打进 exe 数据区，让运行时能从 sys._MEIPASS 找到
 venv\Scripts\python.exe -m PyInstaller ^
     --onefile ^
     --windowed ^
     --name "intelligent assistant" ^
-    --icon reddit_socialnetwork_23460.ico ^
+    --icon intelligent_assistant.ico ^
+    --add-data "intelligent_assistant.ico;." ^
     --clean ^
     run_gui.py
 

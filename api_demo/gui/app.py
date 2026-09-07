@@ -189,6 +189,9 @@ class App:
             except Exception:  # noqa: BLE001
                 pass
 
+        # 设置窗口标题栏 + 任务栏图标（PyInstaller 模式下从 sys._MEIPASS 找）
+        self._set_window_icon()
+
         # 创建主题管理器（创建后立即应用，避免首次绘制闪烁）
         self.theme_manager = ThemeManager(self.root)
 
@@ -263,6 +266,31 @@ class App:
     def _wire_events(self) -> None:
         """绑定窗口事件。"""
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
+
+    # ---------- 窗口图标 ----------
+
+    def _set_window_icon(self) -> None:
+        """设置窗口标题栏 + 任务栏图标。
+
+        - PyInstaller 单文件模式：从 sys._MEIPASS 找 .ico
+        - 普通 python 运行：从项目根目录找
+        - 失败也不报错（窗口会显示默认图标）
+        """
+        from pathlib import Path
+
+        candidates = []
+        meipass = getattr(sys, "_MEIPASS", None)
+        if meipass:
+            candidates.append(Path(meipass) / "intelligent_assistant.ico")
+        candidates.append(Path(__file__).resolve().parent.parent.parent / "intelligent_assistant.ico")
+
+        for path in candidates:
+            try:
+                if path.exists():
+                    self.root.iconbitmap(str(path))
+                    return
+            except tk.TclError:
+                continue
 
     # ---------- 主题 ----------
 
